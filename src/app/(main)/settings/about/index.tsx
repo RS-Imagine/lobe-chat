@@ -51,11 +51,11 @@ const Page = memo<{ mobile?: boolean }>(({ mobile }) => {
         title={`${t('about')} ${BRANDING_NAME}`}
         variant={'pure'}
       >
-        {/* <Flexbox gap={20} paddingBlock={20} width={'100%'}>
+        <Flexbox gap={20} paddingBlock={20} width={'100%'}>
           <div className={styles.title}>{t('version')}</div>
           <Version mobile={mobile} />
           <Divider style={{ marginBlock: 0 }} />
-          <div className={styles.title}>{t('contact')}</div>
+          {/* <div className={styles.title}>{t('contact')}</div>
           <AboutList
             ItemRender={ItemLink}
             items={[
@@ -131,10 +131,10 @@ const Page = memo<{ mobile?: boolean }>(({ mobile }) => {
                 value: 'privacy',
               },
             ]}
-          />
-        </Flexbox> */}
+          /> */}
+        </Flexbox>
       </Form.Group>
-      {/* {enabledTelemetryChat && <Analytics />} */}
+      {enabledTelemetryChat && <Analytics />}
     </>
   );
 });
