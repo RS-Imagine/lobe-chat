@@ -51,7 +51,7 @@ const Page = memo<{ mobile?: boolean }>(({ mobile }) => {
         title={`${t('about')} ${BRANDING_NAME}`}
         variant={'pure'}
       >
-        <Flexbox gap={20} paddingBlock={20} width={'100%'}>
+        {/* <Flexbox gap={20} paddingBlock={20} width={'100%'}>
           <div className={styles.title}>{t('version')}</div>
           <Version mobile={mobile} />
           <Divider style={{ marginBlock: 0 }} />
@@ -132,9 +132,9 @@ const Page = memo<{ mobile?: boolean }>(({ mobile }) => {
               },
             ]}
           />
-        </Flexbox>
+        </Flexbox> */}
       </Form.Group>
-      {enabledTelemetryChat && <Analytics />}
+      {/* {enabledTelemetryChat && <Analytics />} */}
     </>
   );
 });
