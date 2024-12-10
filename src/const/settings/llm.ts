@@ -2,16 +2,15 @@ import { ModelProvider } from '@/libs/agent-runtime';
 import { genUserLLMConfig } from '@/utils/genUserLLMConfig';
 
 export const DEFAULT_LLM_CONFIG = genUserLLMConfig({
-  ollama: {
-    enabled: false,
-    fetchOnClient: false,
-  },
-  openai: {
-    enabled: false,
-  },
   google: {
     enabled: true,
     fetchOnClient: true,
+  },
+  ollama: {
+    enabled: false,
+  },
+  openai: {
+    enabled: false,
   },
 });
 
