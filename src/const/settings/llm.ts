@@ -7,7 +7,6 @@ export const DEFAULT_LLM_CONFIG = genUserLLMConfig({
   },
   google: {
     enabled: true,
-    fetchOnClient: true,
   },
 });
 
