@@ -5,7 +5,7 @@
 export const LOBE_CHAT_CLOUD = 'LobeChat Cloud';
 
 export const BRANDING_NAME = 'ImagineChat';
-export const BRANDING_LOGO_URL = 'https://avatars.githubusercontent.com/u/110177673?v=4&size=64';
+export const BRANDING_LOGO_URL = '';
 
 export const ORG_NAME = 'LobeHub';
 
