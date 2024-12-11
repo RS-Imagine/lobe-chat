@@ -8,6 +8,9 @@ export const DEFAULT_LLM_CONFIG = genUserLLMConfig({
   google: {
     enabled: true,
   },
+  openai: {
+    enabled: true,
+  },
 });
 
 export const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
