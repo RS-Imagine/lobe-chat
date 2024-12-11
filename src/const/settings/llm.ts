@@ -11,6 +11,6 @@ export const DEFAULT_LLM_CONFIG = genUserLLMConfig({
 });
 
 export const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
-export const DEFAULT_EMBEDDING_MODEL = 'gemini-1.5-flash-8b';
+export const DEFAULT_EMBEDDING_MODEL = 'gemini-1.5-pro';
 
 export const DEFAULT_PROVIDER = ModelProvider.Google;
