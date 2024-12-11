@@ -55,7 +55,7 @@ const Page = memo<{ mobile?: boolean }>(({ mobile }) => {
           <div className={styles.title}>{t('version')}</div>
           <Version mobile={mobile} />
           <Divider style={{ marginBlock: 0 }} />
-          <div className={styles.title}>{t('contact')}</div>
+          {/* <div className={styles.title}>{t('contact')}</div>
           <AboutList
             ItemRender={ItemLink}
             items={[
@@ -131,7 +131,7 @@ const Page = memo<{ mobile?: boolean }>(({ mobile }) => {
                 value: 'privacy',
               },
             ]}
-          />
+          /> */}
         </Flexbox>
       </Form.Group>
       {enabledTelemetryChat && <Analytics />}
