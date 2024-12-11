@@ -1,7 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "noUnusedLocals": false,	// 检查是否存在未使用的变量
     "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "allowJs": true,
