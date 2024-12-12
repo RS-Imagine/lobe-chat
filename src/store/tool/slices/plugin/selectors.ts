@@ -50,7 +50,7 @@ const installedPluginMetaList = (s: ToolStoreState) =>
   installedPlugins(s).map<InstallPluginMeta>((p) => ({
     author: p.manifest?.author,
     createdAt: p.manifest?.createdAt || (p.manifest as any)?.createAt,
-    homepage: p.manifest?.homepage,
+    homepage: `https://proxy.forimagine.eu.org/proxy/${p.manifest?.homepage}`, // 修改此行，添加前缀链接
     identifier: p.identifier,
     meta: getPluginMetaById(p.identifier)(s),
     type: p.type,
