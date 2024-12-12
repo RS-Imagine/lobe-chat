@@ -1,3 +1,6 @@
+// 设置全局 HTTPS 代理
+process.env.HTTPS_PROXY = 'https://proxy.forimagine.eu.org/proxy/';
+
 import { EdgeSpeechPayload, EdgeSpeechTTS } from '@lobehub/tts';
 
 export const runtime = 'edge';
