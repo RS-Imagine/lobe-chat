@@ -5,7 +5,7 @@
 export const LOBE_CHAT_CLOUD = 'ImagineChat';
 
 export const BRANDING_NAME = 'Imagine';
-export const BRANDING_LOGO_URL = 'https://pic.imgdb.cn/item/6757ec44d0e0a243d4e0fabc.png';
+export const BRANDING_LOGO_URL = 'https://pic.imgdb.cn/item/675a997cd0e0a243d4e2b495.webp';
 
 export const ORG_NAME = 'Imagine';
 
