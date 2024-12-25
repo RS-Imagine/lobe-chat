@@ -1,6 +1,41 @@
 [
   {
     "children": {
+      "improvements": ["Improve loading brand."]
+    },
+    "date": "2024-12-25",
+    "version": "1.39.3"
+  },
+  {
+    "children": {
+      "improvements": ["Refactor sensenova provider with LobeOpenAICompatibleFactory."]
+    },
+    "date": "2024-12-25",
+    "version": "1.39.2"
+  },
+  {
+    "children": {
+      "fixes": ["Fix image input on pglite."]
+    },
+    "date": "2024-12-24",
+    "version": "1.39.1"
+  },
+  {
+    "children": {
+      "features": ["Upgrade to next15 and react19."]
+    },
+    "date": "2024-12-23",
+    "version": "1.39.0"
+  },
+  {
+    "children": {
+      "features": ["Support thread in client pglite."]
+    },
+    "date": "2024-12-23",
+    "version": "1.38.0"
+  },
+  {
+    "children": {
       "improvements": ["Move pglite to client service."]
     },
     "date": "2024-12-22",
