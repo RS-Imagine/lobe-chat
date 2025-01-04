@@ -15,7 +15,7 @@ export const DEFAULT_SYSTEM_AGENT_ITEM: SystemAgentItem = {
 };
 
 export const DEFAULT_QUERY_REWRITE_SYSTEM_AGENT_ITEM: QueryRewriteSystemAgent = {
-  enabled: true,
+  enabled: false,
   model: DEFAULT_MODEL,
   provider: DEFAULT_PROVIDER,
 };
