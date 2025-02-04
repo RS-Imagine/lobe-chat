@@ -11,8 +11,8 @@ export const DEFAULT_LLM_CONFIG = genUserLLMConfig({
 });
 
 export const DEFAULT_MODEL = 'gemini-1.5-flash-latest';
-export const DEFAULT_EMBEDDING_MODEL = 'embedding-3';
-export const DEFAULT_EMBEDDING_PROVIDER = ModelProvider.ZhiPu;
+export const DEFAULT_EMBEDDING_MODEL = 'embedding-text-3-small';
+export const DEFAULT_EMBEDDING_PROVIDER = ModelProvider.Github;
 
 export const DEFAULT_RERANK_MODEL = 'rerank-english-v3.0';
 export const DEFAULT_RERANK_PROVIDER = 'cohere';
