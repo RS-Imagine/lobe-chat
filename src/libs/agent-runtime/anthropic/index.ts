@@ -97,17 +97,56 @@ export class LobeAnthropicAI implements LobeRuntimeAI {
   }
 
   private async buildAnthropicPayload(payload: ChatStreamPayload) {
-    const { messages, model, max_tokens = 4096, temperature, top_p, tools } = payload;
+    const {
+      messages,
+      model,
+      max_tokens,
+      temperature,
+      top_p,
+      tools,
+      thinking,
+      enabledContextCaching = true,
+    } = payload;
     const system_message = messages.find((m) => m.role === 'system');
     const user_messages = messages.filter((m) => m.role !== 'system');
 
+    const systemPrompts = !!system_message?.content
+      ? ([
+          {
+            cache_control: enabledContextCaching ? { type: 'ephemeral' } : undefined,
+            text: system_message?.content as string,
+            type: 'text',
+          },
+        ] as Anthropic.TextBlockParam[])
+      : undefined;
+
+    const postMessages = await buildAnthropicMessages(user_messages, { enabledContextCaching });
+
+    const postTools = buildAnthropicTools(tools, { enabledContextCaching });
+
+    if (!!thinking) {
+      const maxTokens =
+        max_tokens ?? (thinking?.budget_tokens ? thinking?.budget_tokens + 4096 : 4096);
+
+      // `temperature` may only be set to 1 when thinking is enabled.
+      // `top_p` must be unset when thinking is enabled.
+      return {
+        max_tokens: maxTokens,
+        messages: postMessages,
+        model,
+        system: systemPrompts,
+        thinking,
+        tools: postTools,
+      } satisfies Anthropic.MessageCreateParams;
+    }
+
     return {
-      max_tokens,
-      messages: await buildAnthropicMessages(user_messages),
+      max_tokens: max_tokens ?? 4096,
+      messages: postMessages,
       model,
-      system: system_message?.content as string,
+      system: systemPrompts,
       temperature: payload.temperature !== undefined ? temperature / 2 : undefined,
-      tools: buildAnthropicTools(tools),
+      tools: postTools,
       top_p,
     } satisfies Anthropic.MessageCreateParams;
   }
@@ -124,29 +163,30 @@ export class LobeAnthropicAI implements LobeRuntimeAI {
       method: 'GET',
     });
     const json = await response.json();
-  
+
     const modelList: AnthropicModelCard[] = json['data'];
-  
+
     return modelList
       .map((model) => {
-        const knownModel = LOBE_DEFAULT_MODEL_LIST.find((m) => model.id.toLowerCase() === m.id.toLowerCase());
+        const knownModel = LOBE_DEFAULT_MODEL_LIST.find(
+          (m) => model.id.toLowerCase() === m.id.toLowerCase(),
+        );
 
         return {
           contextWindowTokens: knownModel?.contextWindowTokens ?? undefined,
           displayName: model.display_name,
           enabled: knownModel?.enabled || false,
           functionCall:
-            model.id.toLowerCase().includes('claude-3')
-            || knownModel?.abilities?.functionCall
-            || false,
+            model.id.toLowerCase().includes('claude-3') ||
+            knownModel?.abilities?.functionCall ||
+            false,
           id: model.id,
-          reasoning:
-            knownModel?.abilities?.reasoning
-            || false,
+          reasoning: knownModel?.abilities?.reasoning || false,
           vision:
-            model.id.toLowerCase().includes('claude-3') && !model.id.toLowerCase().includes('claude-3-5-haiku')
-            || knownModel?.abilities?.vision
-            || false,
+            (model.id.toLowerCase().includes('claude-3') &&
+              !model.id.toLowerCase().includes('claude-3-5-haiku')) ||
+            knownModel?.abilities?.vision ||
+            false,
         };
       })
       .filter(Boolean) as ChatModelCard[];
