@@ -10,7 +10,7 @@ export const DEFAULT_LLM_CONFIG = genUserLLMConfig({
   },
 });
 
-export const DEFAULT_MODEL = 'mistral-small';
+export const DEFAULT_MODEL = 'llama-3.3-70b-instruct';
 export const DEFAULT_EMBEDDING_MODEL = "embedding-text-3-small";
 export const DEFAULT_EMBEDDING_PROVIDER = ModelProvider.Github;
 
