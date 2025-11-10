@@ -1,11 +1,11 @@
 import { ProviderCombine, ProviderIcon } from '@lobehub/icons';
 import { Avatar, Text } from '@lobehub/ui';
 import { Divider, Skeleton } from 'antd';
-import Link from 'next/link';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Flexbox } from 'react-layout-kit';
 
+import Link from '@/components/Link';
 import { AiProviderListItem } from '@/types/aiProvider';
 
 import EnableSwitch from './EnableSwitch';
@@ -33,7 +33,7 @@ const ProviderCard = memo<ProviderCardProps>(
     return (
       <Flexbox className={cx(styles.container)} gap={24}>
         <Flexbox gap={12} padding={16} width={'100%'}>
-          <Link href={`/settings/provider/${id}`}>
+          <Link href={`/settings?active=provider&provider=${id}`}>
             <Flexbox gap={12} width={'100%'}>
               <Flexbox align={'center'} horizontal justify={'space-between'}>
                 {source === 'builtin' ? (

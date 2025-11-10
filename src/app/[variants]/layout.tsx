@@ -31,7 +31,13 @@ const RootLayout = async ({ children, params, modal }: RootLayoutProps) => {
   const direction = isRtlLang(locale) ? 'rtl' : 'ltr';
 
   return (
-    <html dir={direction} lang={locale} suppressHydrationWarning>
+    <html dir={direction} lang={locale}>
+      <head>
+        {process.env.DEBUG_REACT_SCAN === '1' && (
+          // eslint-disable-next-line @next/next/no-sync-scripts
+          <script crossOrigin="anonymous" src="https://unpkg.com/react-scan/dist/auto.global.js" />
+        )}
+      </head>
       <body>
         <NuqsAdapter>
           <GlobalProvider
@@ -40,6 +46,7 @@ const RootLayout = async ({ children, params, modal }: RootLayoutProps) => {
             locale={locale}
             neutralColor={neutralColor}
             primaryColor={primaryColor}
+            variants={variants}
           >
             <AuthProvider>
               {children}
@@ -66,6 +73,7 @@ export const generateViewport = async (props: DynamicLayoutProps): ResolvingView
 
   return {
     ...dynamicScale,
+    colorScheme: null,
     initialScale: 1,
     minimumScale: 1,
     themeColor: [

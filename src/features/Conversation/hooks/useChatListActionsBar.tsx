@@ -1,9 +1,13 @@
 import type { ActionIconGroupItemType } from '@lobehub/ui';
+import { css, cx } from 'antd-style';
 import {
+  ArrowDownFromLine,
   Copy,
   DownloadIcon,
   Edit,
+  LanguagesIcon,
   ListRestart,
+  Play,
   RotateCcw,
   Share2,
   Split,
@@ -12,10 +16,18 @@ import {
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { isDeprecatedEdition } from '@/const/version';
+import { localeOptions } from '@/locales/resources';
+
+const translateStyle = css`
+  .ant-dropdown-menu-sub {
+    overflow-y: scroll;
+    max-height: 400px;
+  }
+`;
 
 interface ChatListActionsBar {
   branching: ActionIconGroupItemType;
+  continueGeneration: ActionIconGroupItemType;
   copy: ActionIconGroupItemType;
   del: ActionIconGroupItemType;
   delAndRegenerate: ActionIconGroupItemType;
@@ -24,22 +36,34 @@ interface ChatListActionsBar {
   export: ActionIconGroupItemType;
   regenerate: ActionIconGroupItemType;
   share: ActionIconGroupItemType;
+  translate: ActionIconGroupItemType;
+  tts: ActionIconGroupItemType;
 }
 
 export const useChatListActionsBar = ({
   hasThread,
-}: { hasThread?: boolean } = {}): ChatListActionsBar => {
-  const { t } = useTranslation('common');
+  isContinuing,
+  isRegenerating,
+}: {
+  hasThread?: boolean;
+  isContinuing?: boolean;
+  isRegenerating?: boolean;
+} = {}): ChatListActionsBar => {
+  const { t } = useTranslation(['common', 'chat']);
 
-  return useMemo(
+  return useMemo<ChatListActionsBar>(
     () => ({
       branching: {
-        disable: isDeprecatedEdition,
         icon: Split,
         key: 'branching',
-        label: !isDeprecatedEdition
-          ? t('branching', { defaultValue: 'Create Sub Topic' })
-          : t('branchingDisable'),
+        label: t('branching'),
+      },
+      continueGeneration: {
+        disabled: isContinuing,
+        icon: ArrowDownFromLine,
+        key: 'continueGeneration',
+        label: t('messageAction.continueGeneration', { ns: 'chat' }),
+        spin: isContinuing,
       },
       copy: {
         icon: Copy,
@@ -48,17 +72,16 @@ export const useChatListActionsBar = ({
       },
       del: {
         danger: true,
-        disable: hasThread,
+        disabled: hasThread,
         icon: Trash,
         key: 'del',
         label: hasThread ? t('messageAction.deleteDisabledByThreads', { ns: 'chat' }) : t('delete'),
       },
       delAndRegenerate: {
-        disable: hasThread,
+        disabled: hasThread || isRegenerating,
         icon: ListRestart,
         key: 'delAndRegenerate',
         label: t('messageAction.delAndRegenerate', {
-          defaultValue: 'Delete and regenerate',
           ns: 'chat',
         }),
       },
@@ -68,7 +91,7 @@ export const useChatListActionsBar = ({
       edit: {
         icon: Edit,
         key: 'edit',
-        label: t('edit', { defaultValue: 'Edit' }),
+        label: t('edit'),
       },
       export: {
         icon: DownloadIcon,
@@ -76,16 +99,33 @@ export const useChatListActionsBar = ({
         label: '导出为 PDF',
       },
       regenerate: {
+        disabled: isRegenerating,
         icon: RotateCcw,
         key: 'regenerate',
-        label: t('regenerate', { defaultValue: 'Regenerate' }),
+        label: t('regenerate'),
+        spin: isRegenerating,
       },
       share: {
         icon: Share2,
         key: 'share',
-        label: t('share', { defaultValue: 'Share' }),
+        label: t('share'),
+      },
+      translate: {
+        children: localeOptions.map((i) => ({
+          key: i.value,
+          label: t(`lang.${i.value}`),
+        })),
+        icon: LanguagesIcon,
+        key: 'translate',
+        label: t('translate.action', { ns: 'chat' }),
+        popupClassName: cx(translateStyle),
+      },
+      tts: {
+        icon: Play,
+        key: 'tts',
+        label: t('tts.action', { ns: 'chat' }),
       },
     }),
-    [hasThread],
+    [hasThread, isContinuing, isRegenerating],
   );
 };

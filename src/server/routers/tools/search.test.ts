@@ -1,16 +1,16 @@
 // @vitest-environment node
+import { SEARCH_SEARXNG_NOT_CONFIG } from '@lobechat/types';
 import { TRPCError } from '@trpc/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { toolsEnv } from '@/config/tools';
+import { toolsEnv } from '@/envs/tools';
 import { SearXNGClient } from '@/server/services/search/impls/searxng/client';
-import { SEARCH_SEARXNG_NOT_CONFIG } from '@/types/tool/search';
 
 import { searchRouter } from './search';
 
 // Mock JWT verification
-vi.mock('@/utils/server/jwt', () => ({
-  getJWTPayload: vi.fn().mockResolvedValue({ userId: '1' }),
+vi.mock('@lobechat/utils/server', () => ({
+  getXorPayload: vi.fn().mockReturnValue({ userId: '1' }),
 }));
 
 vi.mock('@lobechat/web-crawler', () => ({
@@ -23,13 +23,7 @@ vi.mock('@/server/services/search/impls/searxng/client');
 
 describe('searchRouter', () => {
   const mockContext = {
-    req: {
-      headers: {
-        authorization: 'Bearer mock-token',
-      },
-    },
-    authorizationHeader: 'Bearer mock-token',
-    jwtPayload: { userId: '1' },
+    userId: 'test-user-id',
   };
 
   beforeEach(() => {

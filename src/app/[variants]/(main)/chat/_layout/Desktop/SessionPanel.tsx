@@ -1,16 +1,18 @@
 'use client';
 
 import { DraggablePanel, DraggablePanelContainer, type DraggablePanelProps } from '@lobehub/ui';
-import { createStyles, useResponsive } from 'antd-style';
+import { createStyles, useResponsive, useThemeMode } from 'antd-style';
 import isEqual from 'fast-deep-equal';
-import { parseAsBoolean, useQueryState } from 'nuqs';
-import { PropsWithChildren, memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 
 import { withSuspense } from '@/components/withSuspense';
 import { FOLDER_WIDTH } from '@/const/layoutTokens';
+import { useIsSingleMode } from '@/hooks/useIsSingleMode';
+import { usePinnedAgentState } from '@/hooks/usePinnedAgentState';
 import { useGlobalStore } from '@/store/global';
 import { systemStatusSelectors } from '@/store/global/selectors';
 
+import SessionPanelContent from '../../components/SessionPanel';
 import { TOOGLE_PANEL_BUTTON_ID } from '../../features/TogglePanelButton';
 
 export const useStyles = createStyles(({ css, token }) => ({
@@ -32,12 +34,15 @@ export const useStyles = createStyles(({ css, token }) => ({
   `,
 }));
 
-const SessionPanel = memo<PropsWithChildren>(({ children }) => {
+const SessionPanel = memo(() => {
+  const isSingleMode = useIsSingleMode();
+
   const { md = true } = useResponsive();
 
-  const [isPinned] = useQueryState('pinned', parseAsBoolean);
+  const [isPinned] = usePinnedAgentState();
 
   const { styles } = useStyles();
+
   const [sessionsWidth, sessionExpandable, updatePreference] = useGlobalStore((s) => [
     systemStatusSelectors.sessionWidth(s),
     systemStatusSelectors.showSessionPanel(s),
@@ -69,26 +74,42 @@ const SessionPanel = memo<PropsWithChildren>(({ children }) => {
     if (!md) updatePreference({ showSessionPanel: false });
   }, [md, cacheExpand]);
 
-  return (
-    <DraggablePanel
-      className={styles.panel}
-      defaultSize={{ width: tmpWidth }}
-      // 当进入 pin 模式下，不可展开
-      expand={!isPinned && sessionExpandable}
-      expandable={!isPinned}
-      maxWidth={400}
-      minWidth={FOLDER_WIDTH}
-      mode={md ? 'fixed' : 'float'}
-      onExpandChange={handleExpand}
-      onSizeChange={handleSizeChange}
-      placement="left"
-      size={{ height: '100%', width: sessionsWidth }}
-    >
-      <DraggablePanelContainer style={{ flex: 'none', height: '100%', minWidth: FOLDER_WIDTH }}>
-        {children}
-      </DraggablePanelContainer>
-    </DraggablePanel>
-  );
+  const { appearance } = useThemeMode();
+
+  const PanelContent = useMemo(() => {
+    if (isSingleMode) {
+      // 在单一模式下，仍然渲染 SessionPanelContent 以确保 SessionHydration 等逻辑组件正常工作
+      // 但使用隐藏样式而不是 return null
+      return (
+        <div style={{ display: 'none' }}>
+          <SessionPanelContent mobile={false} />
+        </div>
+      );
+    }
+
+    return (
+      <DraggablePanel
+        className={styles.panel}
+        defaultSize={{ width: tmpWidth }}
+        // 当进入 pin 模式下，不可展开
+        expand={!isPinned && sessionExpandable}
+        expandable={!isPinned}
+        maxWidth={400}
+        minWidth={FOLDER_WIDTH}
+        mode={md ? 'fixed' : 'float'}
+        onExpandChange={handleExpand}
+        onSizeChange={handleSizeChange}
+        placement="left"
+        size={{ height: '100%', width: sessionsWidth }}
+      >
+        <DraggablePanelContainer style={{ flex: 'none', height: '100%', minWidth: FOLDER_WIDTH }}>
+          <SessionPanelContent mobile={false} />
+        </DraggablePanelContainer>
+      </DraggablePanel>
+    );
+  }, [sessionsWidth, md, isPinned, sessionExpandable, tmpWidth, appearance, isSingleMode]);
+
+  return PanelContent;
 });
 
 export default withSuspense(SessionPanel);

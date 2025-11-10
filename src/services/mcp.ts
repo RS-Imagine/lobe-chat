@@ -1,12 +1,11 @@
+import { CURRENT_VERSION, isDesktop } from '@lobechat/const';
+import { ChatToolPayload, CheckMcpInstallResult, CustomPluginMetadata } from '@lobechat/types';
+import { isLocalOrPrivateUrl, safeParseJSON } from '@lobechat/utils';
 import { PluginManifest } from '@lobehub/market-sdk';
 import { CallReportRequest } from '@lobehub/market-types';
 
-import { CURRENT_VERSION, isDesktop } from '@/const/version';
+import { MCPToolCallResult } from '@/libs/mcp';
 import { desktopClient, toolsClient } from '@/libs/trpc/client';
-import { ChatToolPayload } from '@/types/message';
-import { CheckMcpInstallResult } from '@/types/plugins';
-import { CustomPluginMetadata } from '@/types/tool/plugin';
-import { safeParseJSON } from '@/utils/safeParseJSON';
 
 import { discoverService } from './discover';
 
@@ -43,10 +42,44 @@ class MCPService {
 
     if (!plugin) return;
 
+    const connection = plugin.customParams?.mcp;
+    const settingsEntries = plugin.settings
+      ? Object.entries(plugin.settings as Record<string, any>).filter(
+          ([, value]) => value !== undefined && value !== null,
+        )
+      : [];
+    const pluginSettings =
+      settingsEntries.length > 0
+        ? settingsEntries.reduce<Record<string, unknown>>((acc, [key, value]) => {
+            acc[key] = value;
+
+            return acc;
+          }, {})
+        : undefined;
+
+    const params = {
+      ...connection,
+      name: identifier,
+    } as any;
+
+    if (connection?.type === 'http') {
+      params.headers = {
+        ...connection.headers,
+        ...pluginSettings,
+      };
+    }
+
+    if (connection?.type === 'stdio') {
+      params.env = {
+        ...connection?.env,
+        ...pluginSettings,
+      };
+    }
+
     const data = {
       args,
-      env: plugin.settings,
-      params: { ...plugin.customParams?.mcp, name: identifier } as any,
+      env: connection?.type === 'stdio' ? params.env : (pluginSettings ?? connection?.env),
+      params,
       toolName: apiName,
     };
 
@@ -57,7 +90,7 @@ class MCPService {
     let success = false;
     let errorCode: string | undefined;
     let errorMessage: string | undefined;
-    let result: any;
+    let result: MCPToolCallResult | undefined;
 
     try {
       // For desktop and stdio, use the desktopClient
@@ -87,7 +120,7 @@ class MCPService {
 
       const requestSizeBytes = calculateObjectSizeBytes(inputParams);
       // 计算响应大小
-      const responseSizeBytes = success ? calculateObjectSizeBytes(result) : 0;
+      const responseSizeBytes = success && result ? calculateObjectSizeBytes(result.state) : 0;
 
       const isCustomPlugin = !!customPlugin;
       // 构造上报数据
@@ -103,7 +136,6 @@ class MCPService {
         errorCode,
         errorMessage,
         identifier,
-        inputParams,
         isCustomPlugin,
         metadata: {
           appVersion: CURRENT_VERSION,
@@ -112,7 +144,6 @@ class MCPService {
         },
         methodName: apiName,
         methodType: 'tool' as const,
-        outputResult: success ? result : undefined,
         requestSizeBytes,
         responseSizeBytes,
         sessionId: topicId,
@@ -141,6 +172,13 @@ class MCPService {
     },
     signal?: AbortSignal,
   ) {
+    // 如果是 Desktop 模式且 URL 是本地地址，使用 desktopClient
+    // 这样可以避免在生产环境中通过远程服务器访问用户本地服务
+    if (isDesktop && isLocalOrPrivateUrl(params.url)) {
+      return desktopClient.mcp.getStreamableMcpServerManifest.query(params, { signal });
+    }
+
+    // 否则使用 toolsClient（通过服务器中转）
     return toolsClient.mcp.getStreamableMcpServerManifest.query(params, { signal });
   }
 

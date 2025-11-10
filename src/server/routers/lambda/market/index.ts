@@ -3,10 +3,10 @@ import { serialize } from 'cookie';
 import debug from 'debug';
 import { z } from 'zod';
 
-import { isDesktop } from '@/const/version';
+import { isDesktop } from '@lobechat/const';
 import { publicProcedure, router } from '@/libs/trpc/lambda';
 import { DiscoverService } from '@/server/services/discover';
-import { AssistantSorts, McpSorts, ModelSorts, PluginSorts, ProviderSorts } from '@/types/discover';
+import { AssistantSorts, McpConnectionType, McpSorts, ModelSorts, PluginSorts, ProviderSorts } from '@/types/discover';
 
 const log = debug('lambda-router:market');
 
@@ -83,6 +83,7 @@ export const marketRouter = router({
       z
         .object({
           category: z.string().optional(),
+          connectionType: z.nativeEnum(McpConnectionType).optional(),
           locale: z.string().optional(),
           order: z.enum(['asc', 'desc']).optional(),
           page: z.number().optional(),
@@ -173,25 +174,12 @@ export const marketRouter = router({
       }
     }),
 
-  getMcpIdentifiers: marketProcedure.query(async ({ ctx }) => {
-    log('getMcpIdentifiers called');
-
-    try {
-      return await ctx.discoverService.getMcpIdentifiers();
-    } catch (error) {
-      log('Error fetching mcp identifiers: %O', error);
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'Failed to fetch mcp identifiers',
-      });
-    }
-  }),
-
   getMcpList: marketProcedure
     .input(
       z
         .object({
           category: z.string().optional(),
+          connectionType: z.nativeEnum(McpConnectionType).optional(),
           locale: z.string().optional(),
           order: z.enum(['asc', 'desc']).optional(),
           page: z.number().optional(),
@@ -554,17 +542,14 @@ export const marketRouter = router({
       z.object({
         callDurationMs: z.number(),
         clientId: z.string().optional(),
-        clientIp: z.string().optional(),
         customPluginInfo: z.any().optional(),
         errorCode: z.string().optional(),
         errorMessage: z.string().optional(),
         identifier: z.string(),
-        inputParams: z.any().optional(),
         isCustomPlugin: z.boolean().optional(),
         metadata: z.record(z.any()).optional(),
         methodName: z.string(),
         methodType: z.enum(['tool', 'prompt', 'resource']),
-        outputResult: z.any().optional(),
         platform: z.string().optional(),
         requestSizeBytes: z.number().optional(),
         responseSizeBytes: z.number().optional(),

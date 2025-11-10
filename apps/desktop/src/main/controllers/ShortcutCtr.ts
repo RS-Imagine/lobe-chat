@@ -1,8 +1,10 @@
+import { ShortcutUpdateResult } from '@/core/ui/ShortcutManager';
+
 import { ControllerModule, ipcClientEvent } from '.';
 
 export default class ShortcutController extends ControllerModule {
   /**
-   * 获取所有快捷键配置
+   * Get all shortcut configurations
    */
   @ipcClientEvent('getShortcutsConfig')
   getShortcutsConfig() {
@@ -10,10 +12,16 @@ export default class ShortcutController extends ControllerModule {
   }
 
   /**
-   * 更新单个快捷键配置
+   * Update a single shortcut configuration
    */
   @ipcClientEvent('updateShortcutConfig')
-  updateShortcutConfig(id: string, accelerator: string): boolean {
+  updateShortcutConfig({
+    id,
+    accelerator,
+  }: {
+    accelerator: string;
+    id: string;
+  }): ShortcutUpdateResult {
     return this.app.shortcutManager.updateShortcutConfig(id, accelerator);
   }
 }

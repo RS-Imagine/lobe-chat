@@ -1,35 +1,38 @@
 import { UserJSON } from '@clerk/backend';
-import { v4 as uuidv4 } from 'uuid';
-import { z } from 'zod';
-
-import { enableClerk } from '@/const/auth';
-import { isDesktop } from '@/const/version';
-import { MessageModel } from '@/database/models/message';
-import { SessionModel } from '@/database/models/session';
-import { UserModel, UserNotFoundError } from '@/database/models/user';
-import { ClerkAuth } from '@/libs/clerk-auth';
-import { pino } from '@/libs/logger';
-import { LobeNextAuthDbAdapter } from '@/libs/next-auth/adapter';
-import { authedProcedure, router } from '@/libs/trpc/lambda';
-import { serverDatabase } from '@/libs/trpc/lambda/middleware';
-import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
-import { S3 } from '@/server/modules/S3';
-import { FileService } from '@/server/services/file';
-import { UserService } from '@/server/services/user';
+import { enableClerk, isDesktop } from '@lobechat/const';
 import {
   NextAuthAccountSchame,
   UserGuideSchema,
   UserInitializationState,
   UserPreference,
-} from '@/types/user';
-import { UserSettings } from '@/types/user/settings';
+  UserPreferenceSchema,
+  UserSettings,
+  UserSettingsSchema,
+} from '@lobechat/types';
+import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
+
+import { MessageModel } from '@/database/models/message';
+import { SessionModel } from '@/database/models/session';
+import { UserModel, UserNotFoundError } from '@/database/models/user';
+import { ClerkAuth } from '@/libs/clerk-auth';
+import { pino } from '@/libs/logger';
+import { authedProcedure, router } from '@/libs/trpc/lambda';
+import { serverDatabase } from '@/libs/trpc/lambda/middleware';
+import { KeyVaultsGateKeeper } from '@/server/modules/KeyVaultsEncrypt';
+import { S3 } from '@/server/modules/S3';
+import { FileService } from '@/server/services/file';
+import { NextAuthUserService } from '@/server/services/nextAuthUser';
+import { UserService } from '@/server/services/user';
 
 const userProcedure = authedProcedure.use(serverDatabase).use(async ({ ctx, next }) => {
   return next({
     ctx: {
       clerkAuth: new ClerkAuth(),
       fileService: new FileService(ctx.serverDB, ctx.userId),
-      nextAuthDbAdapter: LobeNextAuthDbAdapter(ctx.serverDB),
+      messageModel: new MessageModel(ctx.serverDB, ctx.userId),
+      nextAuthUserService: new NextAuthUserService(ctx.serverDB),
+      sessionModel: new SessionModel(ctx.serverDB, ctx.userId),
       userModel: new UserModel(ctx.serverDB, ctx.userId),
     },
   });
@@ -58,7 +61,7 @@ export const userRouter = router({
           if (enableClerk) {
             const user = await ctx.clerkAuth.getCurrentUser();
             if (user) {
-              const userService = new UserService();
+              const userService = new UserService(ctx.serverDB);
 
               await userService.createUser(user.id, {
                 created_at: user.createdAt,
@@ -96,12 +99,12 @@ export const userRouter = router({
       }
     }
 
-    const messageModel = new MessageModel(ctx.serverDB, ctx.userId);
-    const hasMoreThan4Messages = await messageModel.hasMoreThanN(4);
-
-    const sessionModel = new SessionModel(ctx.serverDB, ctx.userId);
-    const hasAnyMessages = await messageModel.hasMoreThanN(0);
-    const hasExtraSession = await sessionModel.hasMoreThanN(1);
+    // Run all count queries in parallel
+    const [hasMoreThan4Messages, hasAnyMessages, hasExtraSession] = await Promise.all([
+      ctx.messageModel.hasMoreThanN(4),
+      ctx.messageModel.hasMoreThanN(0),
+      ctx.sessionModel.hasMoreThanN(1),
+    ]);
 
     return {
       avatar: state.avatar,
@@ -134,19 +137,10 @@ export const userRouter = router({
 
   unlinkSSOProvider: userProcedure.input(NextAuthAccountSchame).mutation(async ({ ctx, input }) => {
     const { provider, providerAccountId } = input;
-    if (
-      ctx.nextAuthDbAdapter?.unlinkAccount &&
-      typeof ctx.nextAuthDbAdapter.unlinkAccount === 'function' &&
-      ctx.nextAuthDbAdapter?.getAccount &&
-      typeof ctx.nextAuthDbAdapter.getAccount === 'function'
-    ) {
-      const account = await ctx.nextAuthDbAdapter.getAccount(providerAccountId, provider);
-      // The userId can either get from ctx.nextAuth?.id or ctx.userId
-      if (!account || account.userId !== ctx.userId) throw new Error('The account does not exist');
-      await ctx.nextAuthDbAdapter.unlinkAccount({ provider, providerAccountId });
-    } else {
-      throw new Error('The method in LobeNextAuthDbAdapter `unlinkAccount` is not implemented');
-    }
+    const account = await ctx.nextAuthUserService.getAccount(providerAccountId, provider);
+    // The userId can either get from ctx.nextAuth?.id or ctx.userId
+    if (!account || account.userId !== ctx.userId) throw new Error('The account does not exist');
+    await ctx.nextAuthUserService.unlinkAccount({ provider, providerAccountId });
   }),
 
   // 服务端上传头像
@@ -208,30 +202,28 @@ export const userRouter = router({
     return ctx.userModel.updateGuide(input);
   }),
 
-  updatePreference: userProcedure.input(z.any()).mutation(async ({ ctx, input }) => {
+  updatePreference: userProcedure.input(UserPreferenceSchema).mutation(async ({ ctx, input }) => {
     return ctx.userModel.updatePreference(input);
   }),
 
-  updateSettings: userProcedure
-    .input(z.object({}).passthrough())
-    .mutation(async ({ ctx, input }) => {
-      const { keyVaults, ...res } = input as Partial<UserSettings>;
+  updateSettings: userProcedure.input(UserSettingsSchema).mutation(async ({ ctx, input }) => {
+    const { keyVaults, ...res } = input as Partial<UserSettings>;
 
-      // Encrypt keyVaults
-      let encryptedKeyVaults: string | null = null;
+    // Encrypt keyVaults
+    let encryptedKeyVaults: string | null = null;
 
-      if (keyVaults) {
-        // TODO: better to add a validation
-        const data = JSON.stringify(keyVaults);
-        const gateKeeper = await KeyVaultsGateKeeper.initWithEnvKey();
+    if (keyVaults) {
+      // TODO: better to add a validation
+      const data = JSON.stringify(keyVaults);
+      const gateKeeper = await KeyVaultsGateKeeper.initWithEnvKey();
 
-        encryptedKeyVaults = await gateKeeper.encrypt(data);
-      }
+      encryptedKeyVaults = await gateKeeper.encrypt(data);
+    }
 
-      const nextValue = { ...res, keyVaults: encryptedKeyVaults };
+    const nextValue = { ...res, keyVaults: encryptedKeyVaults };
 
-      return ctx.userModel.updateSetting(nextValue);
-    }),
+    return ctx.userModel.updateSetting(nextValue);
+  }),
 });
 
 export type UserRouter = typeof userRouter;
