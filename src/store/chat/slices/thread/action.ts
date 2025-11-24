@@ -1,6 +1,6 @@
 /* eslint-disable sort-keys-fix/sort-keys-fix, typescript-sort-keys/interface */
 // Disable the auto sort key eslint rule to make the code more logic and readable
-import { LOADING_FLAT, THREAD_DRAFT_ID, isDeprecatedEdition } from '@lobechat/const';
+import { LOADING_FLAT, THREAD_DRAFT_ID } from '@lobechat/const';
 import { chainSummaryTitle } from '@lobechat/prompts';
 import {
   CreateMessageParams,
@@ -176,7 +176,8 @@ export const chatThreadMessage: StateCreator<
       messages,
       parentMessageId,
       parentMessageType: 'user',
-      ragQuery: get().internal_shouldUseRAG() ? message : undefined,
+      sessionId: get().activeId,
+      topicId: get().activeTopicId,
       threadId: get().portalThreadId,
       inPortalThread: true,
     });
@@ -222,7 +223,7 @@ export const chatThreadMessage: StateCreator<
 
   useFetchThreads: (enable, topicId) =>
     useClientDataSWR<ThreadItem[]>(
-      enable && !!topicId && !isDeprecatedEdition ? [SWR_USE_FETCH_THREADS, topicId] : null,
+      enable && !!topicId ? [SWR_USE_FETCH_THREADS, topicId] : null,
       async ([, topicId]: [string, string]) => threadService.getThreads(topicId),
       {
         onSuccess: (threads) => {

@@ -1,7 +1,7 @@
 import { ChatToolPayload, ModelUsage } from '@lobechat/types';
 
 import type { FinishReason } from './event';
-import { AgentState, ToolRegistry, ToolsCalling } from './state';
+import { AgentState, ToolRegistry } from './state';
 import type { Cost, CostCalculationContext, Usage } from './usage';
 
 /**
@@ -9,6 +9,10 @@ import type { Cost, CostCalculationContext, Usage } from './usage';
  */
 export interface AgentRuntimeContext {
   metadata?: Record<string, unknown>;
+
+  /** Operation ID (links to Operation for business context) */
+  operationId?: string;
+
   /** Phase-specific payload/context */
   payload?: unknown;
   /** Current execution phase */
@@ -20,9 +24,11 @@ export interface AgentRuntimeContext {
     | 'tools_batch_result'
     | 'human_response'
     | 'human_approved_tool'
+    | 'human_abort'
     | 'error';
-  /** Session */
-  session: {
+
+  /** Session info (kept for backward compatibility, will be optional in the future) */
+  session?: {
     messageCount: number;
     sessionId: string;
     status: AgentState['status'];
@@ -99,6 +105,22 @@ export interface CallingToolPayload {
   type: 'mcp' | 'default' | 'markdown' | 'standalone';
 }
 
+export interface HumanAbortPayload {
+  /** Whether there are pending tool calls */
+  hasToolsCalling?: boolean;
+  /** Parent message ID (assistant message) */
+  parentMessageId: string;
+  /** Reason for the abort */
+  reason: string;
+  /** LLM result including content and tool_calls */
+  result?: {
+    content: string;
+    tool_calls?: any[];
+  };
+  /** Pending tool calls that need to be cancelled */
+  toolsCalling?: ChatToolPayload[];
+}
+
 export interface AgentInstructionCallLlm {
   payload: any;
   type: 'call_llm';
@@ -137,8 +159,9 @@ export interface AgentInstructionRequestHumanSelect {
 }
 
 export interface AgentInstructionRequestHumanApprove {
-  pendingToolsCalling: ToolsCalling[];
+  pendingToolsCalling: ChatToolPayload[];
   reason?: string;
+  skipCreateToolMessage?: boolean;
   type: 'request_human_approve';
 }
 
@@ -146,6 +169,18 @@ export interface AgentInstructionFinish {
   reason: FinishReason;
   reasonDetail?: string;
   type: 'finish';
+}
+
+export interface AgentInstructionResolveAbortedTools {
+  payload: {
+    /** Parent message ID (assistant message) */
+    parentMessageId: string;
+    /** Reason for the abort */
+    reason?: string;
+    /** Tool calls that need to be resolved/cancelled */
+    toolsCalling: ChatToolPayload[];
+  };
+  type: 'resolve_aborted_tools';
 }
 
 /**
@@ -159,4 +194,5 @@ export type AgentInstruction =
   | AgentInstructionRequestHumanPrompt
   | AgentInstructionRequestHumanSelect
   | AgentInstructionRequestHumanApprove
+  | AgentInstructionResolveAbortedTools
   | AgentInstructionFinish;
